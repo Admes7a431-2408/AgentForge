@@ -15,6 +15,7 @@ context:
     - methodology/workflow.md
     - scripts/af.py
     - install.sh
+  interfaces: none_modified
   background: >
     La auditoría técnica identificó varias fallas en el tooling y la instalación:
     1. af.py validate aprueba reportes DONE con verified:false y gates not_run.

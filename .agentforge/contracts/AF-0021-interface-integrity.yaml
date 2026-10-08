@@ -16,6 +16,9 @@ context:
     - adapters/claude-code/agents/af-reviewer.md
     - methodology/workflow.md
     - methodology/quality-gates.md
+  interfaces:
+    produces:
+      - "af.py validate Interface Integrity Gate"
   background: >
     La investigación técnica demostró que AgentForge protegía FILE SCOPE pero carecía de control
     sobre INTERFACE SCOPE. Un cambio de firma o de data shape dentro de allowed_files pasaba inadvertido.
