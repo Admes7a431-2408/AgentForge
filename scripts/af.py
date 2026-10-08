@@ -6,7 +6,7 @@
   af.py validate [--contract C] <contract|report|agent.yaml>...  structural check by kind; --contract also checks a report's gates and interface coherence
   af.py check-scope <contract.yaml> [--base REF] [--allow-untracked-contract]
                                                             gate G5: changes since REF (default HEAD) vs contract scope
-  af.py init [PROJECT_DIR]                                  create .agentforge/ with CONTEXT.md
+  af.py init [PROJECT_DIR]                                  create .agentforge/ with CONTEXT.md, contracts/ and reports/
 
 Exit codes: 0 ok, 1 check failed, 2 usage/config error. Requires PyYAML.
 """
@@ -322,7 +322,8 @@ def cmd_check_scope(a):
 
 def cmd_init(a):
     target = os.path.join(a.project, ".agentforge")
-    os.makedirs(target, exist_ok=True)
+    for sub in ("contracts", "reports"):
+        os.makedirs(os.path.join(target, sub), exist_ok=True)
     ctx = os.path.join(target, "CONTEXT.md")
     if os.path.exists(ctx):
         print(f"{ctx} already exists; left untouched")

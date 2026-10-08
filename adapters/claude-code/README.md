@@ -37,4 +37,4 @@ Claude actúa como Executor ([workflow.md](../../methodology/workflow.md#procedi
 
 ## Instalación
 
-`install.sh` en la raíz enlaza la skill en `~/.claude/skills/agentforge` y, con `--agents`, copia `agents/*.md` a `~/.claude/agents/` (no sobrescribe archivos existentes). Si ya tienes `scout`, `worker` y `reviewer`, no hacen falta: `profiles.yaml` los reconoce como equivalentes.
+`install.sh` en la raíz enlaza la skill en `~/.claude/skills/agentforge` y, con `--agents`, crea enlaces simbólicos (SSOT, no copias) de `agents/*.md` en `~/.claude/agents/` (no sobrescribe archivos existentes). `install.sh --uninstall` elimina únicamente los enlaces que apuntan a AgentForge. Si ya tienes `scout`, `worker` y `reviewer`, no hacen falta: `profiles.yaml` los reconoce como equivalentes.

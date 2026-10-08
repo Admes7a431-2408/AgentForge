@@ -20,7 +20,7 @@ _Evitar_: success, ok, pending.
 
 - Ningún cambio puede romper la compatibilidad de AgentForge entre Claude Code y Antigravity.
 - Ninguna regla global debe duplicarse entre archivos de metodología; solo en principles.md.
-- La instalación real de AgentForge está estrictamente prohibida hasta que la misión concluya con auditoría favorable.
+- La instalación real de AgentForge sigue prohibida hasta la publicación v0.1.0 y su auditoría favorable; usa siempre `--dry-run` antes. `install.sh --uninstall` la revierte.
 - Las tareas L0 y L1 deben permanecer ligeras sin burocracia obligatoria.
 
 ## Pointers

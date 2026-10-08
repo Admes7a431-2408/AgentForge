@@ -387,6 +387,72 @@ class InstallScript(TempDirCase):
     def test_unknown_flag_is_usage_error(self):
         self.assertEqual(run(["bash", INSTALL, "--bogus"]).returncode, 2)
 
+    def make_home(self):
+        home = os.path.join(self.tmp, "home")
+        os.makedirs(home)
+        return home, {**os.environ, "HOME": home}
+
+    def test_help(self):
+        for flag in ("--help", "-h"):
+            with self.subTest(flag=flag):
+                r = run(["bash", INSTALL, flag])
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn("--uninstall", r.stdout)
+
+    def test_install_then_uninstall_roundtrip_and_idempotent(self):
+        home, env = self.make_home()
+        skill = os.path.join(home, ".claude", "skills", "agentforge")
+        for _ in range(2):  # idempotent
+            self.assertEqual(run(["bash", INSTALL, "--claude", "--agents"], env=env).returncode, 0)
+        self.assertEqual(os.path.realpath(skill), ROOT)
+        agents = os.listdir(os.path.join(home, ".claude", "agents"))
+        self.assertTrue(agents)
+        for _ in range(2):
+            self.assertEqual(run(["bash", INSTALL, "--uninstall", "--claude", "--agents"], env=env).returncode, 0)
+        self.assertFalse(os.path.lexists(skill))
+        self.assertEqual(os.listdir(os.path.join(home, ".claude", "agents")), [])
+
+    def test_uninstall_preserves_foreign_files(self):
+        home, env = self.make_home()
+        foreign = os.path.join(home, ".claude", "skills", "agentforge")
+        os.makedirs(foreign)
+        other = os.path.join(home, ".claude", "agents", "af-scout.md")
+        os.makedirs(os.path.dirname(other))
+        with open(other, "w") as f:
+            f.write("mine")
+        r = run(["bash", INSTALL, "--uninstall", "--claude", "--agents"], env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(os.path.isdir(foreign) and not os.path.islink(foreign))
+        self.assertTrue(os.path.isfile(other))
+
+    def test_uninstall_dry_run_keeps_links(self):
+        home, env = self.make_home()
+        skill = os.path.join(home, ".claude", "skills", "agentforge")
+        run(["bash", INSTALL, "--claude"], env=env)
+        r = run(["bash", INSTALL, "--uninstall", "--dry-run", "--claude"], env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("[dry-run] rm", r.stdout)
+        self.assertTrue(os.path.islink(skill))
+
+
+class InitCommand(TempDirCase):
+    def test_init_creates_full_structure(self):
+        r = af("init", self.tmp)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        base = os.path.join(self.tmp, ".agentforge")
+        self.assertTrue(os.path.isfile(os.path.join(base, "CONTEXT.md")))
+        self.assertTrue(os.path.isdir(os.path.join(base, "contracts")))
+        self.assertTrue(os.path.isdir(os.path.join(base, "reports")))
+
+    def test_init_is_idempotent_and_keeps_context(self):
+        af("init", self.tmp)
+        ctx = os.path.join(self.tmp, ".agentforge", "CONTEXT.md")
+        with open(ctx, "w") as f:
+            f.write("custom")
+        self.assertEqual(af("init", self.tmp).returncode, 0)
+        with open(ctx) as f:
+            self.assertEqual(f.read(), "custom")
+
 
 if __name__ == "__main__":
     unittest.main()

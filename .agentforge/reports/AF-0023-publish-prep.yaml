@@ -1,0 +1,79 @@
+contract: AF-0023-publish-prep
+task: >
+  Preparar AgentForge para su primera publicación v0.1.0 en GitHub:
+  ampliar install.sh con soporte reversible (--uninstall y --help) e idempotente,
+  asegurar que af.py init cree la estructura completa (.agentforge/contracts y reports),
+  reforzar .gitignore para distribución limpia, añadir VERSION (0.1.0) y CHANGELOG.md,
+  corregir adapters/claude-code/README.md para reflejar symlinks en vez de copias,
+  crear README.md completo para usuarios externos con arquitectura, lifecycle y quickstart,
+  y añadir tests deterministas en tests/test_agentforge.py para init y reversibilidad.
+status: DONE
+verified: true
+
+route:
+  - "Route: L2 · STANDARD · risk medium · delegate(Claude Code) + verify/review(Antigravity)"
+
+delegations:
+  - "Claude Code (sonnet/medium) ejecutó la implementación de archivos permitidos."
+
+what_changed: >
+  1. install.sh: se añadieron flags --uninstall (remueve solo enlaces symlink propios de AgentForge),
+     -h/--help para ayuda y validación de argumentos, preservando idempotencia y modo --dry-run.
+  2. scripts/af.py: cmd_init ahora crea los directorios .agentforge/contracts y .agentforge/reports
+     junto con .agentforge/CONTEXT.md.
+  3. tests/test_agentforge.py: 6 pruebas unitarias añadidas (4 para install.sh --help/roundtrip/foreign/dry-run
+     y 2 para af.py init), totalizando 44 pruebas automatizadas.
+  4. .gitignore: cobertura estándar para Python, cachés, virtualenvs, editores, SO (.DS_Store) y .env.
+  5. VERSION y CHANGELOG.md: creados para v0.1.0 siguiendo Keep a Changelog.
+  6. adapters/claude-code/README.md: documenta creación de enlaces simbólicos (SSOT) en lugar de copias.
+  7. README.md: guía completa para usuarios con diagramas ASCII de arquitectura, ciclo de vida,
+     tabla de niveles L0-L5, flujo de trabajo, instalación SSOT, quickstart, reversibilidad y limitaciones.
+  8. .agentforge/CONTEXT.md: aclara política de reversibilidad de install.sh.
+
+files_affected:
+  - install.sh
+  - scripts/af.py
+  - tests/test_agentforge.py
+  - .gitignore
+  - VERSION
+  - CHANGELOG.md
+  - README.md
+  - adapters/claude-code/README.md
+  - .agentforge/CONTEXT.md
+
+interface_changes: none
+
+tests_executed:
+  - command: "python3 -m unittest discover -s tests -v"
+    result: "Ran 44 tests in 7.123s — OK"
+  - command: "bash install.sh --help"
+    result: "Exit code 0 con manual de uso completo"
+  - command: "bash install.sh --dry-run --agents"
+    result: "Exit code 0, detecta enlaces existentes e informa acciones sin alterar sistema"
+  - command: "bash install.sh --dry-run --uninstall --agents"
+    result: "Exit code 0, previsualiza eliminación de enlaces sin alterar sistema"
+  - command: "python3 scripts/af.py check-scope .agentforge/contracts/AF-0023-publish-prep.yaml --base dbacfe2"
+    result: "G5 scope: pass — 9 changed, 0 out of scope (base dbacfe2)"
+
+verification_results:
+  - gate: G1
+    result: pass
+    evidence: "8/8 criterios de aceptación de AF-0023 cumplidos y verificados con pruebas automatizadas."
+  - gate: G5
+    result: pass
+    evidence: "af.py check-scope: exactamente 9 archivos modificados dentro de allowed_files, 0 fuera de scope."
+  - gate: G6
+    result: pass
+    evidence: "Cumplimiento estricto de restricciones del contrato AF-0023."
+  - gate: G8
+    result: pass
+    evidence: "Revisión independiente por Antigravity (Quality Owner); código modular, sin secrets y SSOT preservado."
+
+rulings: []
+contract_deviations: []
+unexpected_findings:
+  - "Claude operó con contención estricta al carecer de permisos bash: no inventó resultados de tests y solicitó verificación."
+remaining_risks: []
+follow_up_recommendations:
+  - "Ejecutar prueba de clonación aislada en directorio temporal independiente."
+learnings: []
