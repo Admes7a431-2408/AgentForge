@@ -1,0 +1,81 @@
+id: AF-0023-publish-prep
+level: L2
+risk: medium
+
+objective: >
+  Preparar AgentForge para su primera publicación v0.1.0 en GitHub:
+  ampliar install.sh con soporte reversible (--uninstall y --help) e idempotente,
+  asegurar que af.py init cree la estructura completa (.agentforge/contracts y reports),
+  reforzar .gitignore para distribución limpia, añadir VERSION (0.1.0) y CHANGELOG.md,
+  corregir adapters/claude-code/README.md para reflejar symlinks en vez de copias,
+  crear README.md completo para usuarios externos con arquitectura, lifecycle y quickstart,
+  y añadir tests deterministas en tests/test_agentforge.py para init y reversibilidad.
+
+context:
+  read_first:
+    - .agentforge/CONTEXT.md
+    - install.sh
+    - scripts/af.py
+    - tests/test_agentforge.py
+    - adapters/claude-code/README.md
+  interfaces: none_modified
+  background: >
+    AgentForge se prepara como Release Candidate v0.1.0. Debe poder clonarse limpiamente
+    desde GitHub por un usuario externo, probarse con dry-run, instalarse de forma segura
+    vía symlinks (SSOT), revertirse limpiamente (--uninstall) y ejecutarse de forma independiente.
+
+role: executor
+
+scope:
+  allowed_files:
+    - install.sh
+    - scripts/af.py
+    - tests/test_agentforge.py
+    - .gitignore
+    - VERSION
+    - CHANGELOG.md
+    - README.md
+    - adapters/claude-code/README.md
+    - .agentforge/CONTEXT.md
+  excluded_areas:
+    - methodology/
+    - routing/
+    - contracts/templates/
+    - contracts/examples/
+    - adapters/antigravity/
+
+permissions:
+  commands:
+    allow:
+      - "python3 -m unittest discover -s tests -v"
+      - "bash install.sh --help"
+      - "bash install.sh --dry-run"
+      - "bash install.sh --uninstall --dry-run"
+      - "python3 scripts/af.py validate .agentforge/contracts/AF-0023-publish-prep.yaml"
+      - "python3 scripts/af.py check-scope .agentforge/contracts/AF-0023-publish-prep.yaml"
+    deny:
+      - "git push"
+      - "git tag -a"
+
+acceptance_criteria:
+  - "install.sh soporta --uninstall (elimina únicamente enlaces que apuntan a AgentForge) y --help / -h, preservando idempotencia y --dry-run."
+  - "af.py init crea .agentforge/ con CONTEXT.md y las carpetas contracts/ y reports/."
+  - ".gitignore incluye patrones estándar de Python, editores, SO y archivos de entorno (.env, __pycache__, *.pyc, .DS_Store, etc.)."
+  - "VERSION contiene '0.1.0' y CHANGELOG.md documenta la versión inicial v0.1.0 siguiendo Keep a Changelog."
+  - "adapters/claude-code/README.md documenta que --agents crea enlaces simbólicos (SSOT) en lugar de copias."
+  - "README.md raíz completo con visión general, problema resuelto, arquitectura, niveles L0-L5, flujo de trabajo, instalación, quickstart, reversibilidad, requisitos y limitaciones conocidas."
+  - "tests/test_agentforge.py añade tests deterministas para install.sh --uninstall (y dry-run) y af.py init, manteniendo los 38 tests previos y alcanzando >= 40 tests, todos en verde."
+  - "python3 scripts/af.py validate valida exitosamente el contrato y los reportes."
+
+verification:
+  commands:
+    - "python3 scripts/af.py validate .agentforge/contracts/AF-0023-publish-prep.yaml"
+    - "python3 -m unittest discover -s tests -v"
+    - "bash install.sh --help"
+    - "bash install.sh --dry-run --agents"
+    - "bash install.sh --dry-run --uninstall --agents"
+  gates:
+    - G1
+    - G5
+    - G6
+    - G8
