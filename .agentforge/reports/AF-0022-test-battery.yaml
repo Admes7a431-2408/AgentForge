@@ -1,0 +1,54 @@
+contract: AF-0022-test-battery
+task: >
+  Crear una suite de pruebas automatizadas y deterministas (tests/test_agentforge.py)
+  que cubra la regresión completa de AgentForge y la batería obligatoria I1-I9 del Interface Integrity Gate.
+status: DONE
+verified: true
+
+route:
+  - "Route: L2 · STANDARD · risk medium · delegate(Claude) + verify(Antigravity) — batería de tests y regresión"
+delegations:
+  - "claude STANDARD: implementación de tests/test_agentforge.py → accepted"
+
+what_changed: >
+  Creada la suite determinista tests/test_agentforge.py con 38 pruebas unitarias usando unittest estándar de Python:
+  - InterfaceIntegrityGate (14 tests): I1 (none_modified en context y top-level), I2..I7 (mutaciones requieren interfaces),
+    I8 (consumes/produces declarados), I9 (rechazo de ausente/vacío en risk>=medium; exención en low), y validación cruzada
+    de reportes (none_modified vs cambios declarados).
+  - CheckScope (7 tests): rechazo de contrato no commiteado, --allow-untracked-contract, contrato modificado, out of scope,
+    áreas excluidas, y reporte propio exento.
+  - ReportValidation (9 tests): rechazo de DONE con verified:false, DONE con not_run, DONE con fail; aceptación de
+    DONE_WITH_CONCERNS; y verificación cruzada de gates del contrato (--contract).
+  - AgentValidation (2 tests): validación de agent.yaml como agent, y rechazo de agentes inválidos.
+  - TierResolution (4 tests): FAST..MAX en claude-code y antigravity, case-insensitivity y roles.
+  - InstallScript (2 tests): verificación de symlinks ln -s en install.sh --dry-run --agents.
+files_affected:
+  - tests/test_agentforge.py
+interface_changes: none
+
+tests_executed:
+  - command: "python3 tests/test_agentforge.py -v"
+    result: "Ran 38 tests in 7.041s - OK"
+  - command: "python3 scripts/af.py check-scope .agentforge/contracts/AF-0022-test-battery.yaml --base a16153d"
+    result: "G5 scope: pass — 1 changed, 0 out of scope"
+
+verification_results:
+  - gate: G1
+    result: pass
+    evidence: "38/38 tests pasando en verde, cubriendo I1..I9 y toda la regresión."
+  - gate: G3
+    result: pass
+    evidence: "Suite completa unittest ejecutada con salida fresca 'Ran 38 tests in 7.041s - OK'."
+  - gate: G5
+    result: pass
+    evidence: "af.py check-scope: 1 changed (tests/test_agentforge.py), 0 out of scope."
+  - gate: G6
+    result: pass
+    evidence: "Cumplimiento estricto del contrato AF-0022."
+
+rulings: []
+contract_deviations: []
+unexpected_findings: []
+remaining_risks: []
+follow_up_recommendations: []
+learnings: []
