@@ -1,0 +1,67 @@
+id: AF-0022-test-battery
+level: L2
+risk: medium
+
+objective: >
+  Crear una suite de pruebas automatizadas y deterministas (tests/test_agentforge.py)
+  que cubra la regresión completa de AgentForge y la batería obligatoria I1-I9 del Interface Integrity Gate.
+
+context:
+  read_first:
+    - .agentforge/CONTEXT.md
+    - scripts/af.py
+    - methodology/quality-gates.md
+  interfaces: none_modified
+
+role: executor
+
+scope:
+  allowed_directories:
+    - tests/
+  allowed_files:
+    - tests/test_agentforge.py
+  excluded_areas:
+    - routing/profiles.yaml
+    - SKILL.md
+    - install.sh
+    - methodology/
+
+permissions:
+  commands:
+    allow:
+      - "python3 -m unittest discover -s tests -q"
+      - "python3 tests/test_agentforge.py"
+      - "git diff"
+      - "git status"
+    deny:
+      - "git push"
+      - "git commit"
+  network: false
+  write_memory: false
+
+acceptance_criteria:
+  - "Existe tests/test_agentforge.py ejecutable con unittest estándar de Python (sin dependencias externas adicionales a PyYAML)."
+  - "Incluye pruebas completas para la batería I1-I9 del Interface Integrity Gate demostrando el comportamiento esperado."
+  - "Incluye pruebas de regresión para: resolución de tiers (FAST..MAX), validación de agent.yaml, rechazo de DONE con verified:false o gates not_run, validación cruzada reporte-contrato, y protección de check-scope ante contratos no commiteados o modificados."
+  - "Incluye prueba de install.sh --dry-run verificando que use ln -s para los agentes."
+  - "Toda la suite pasa completa al ejecutarse con 'python3 tests/test_agentforge.py' o 'python3 -m unittest tests/test_agentforge.py'."
+
+verification:
+  commands:
+    - "python3 tests/test_agentforge.py"
+  gates:
+    - G1
+    - G3
+    - G5
+    - G6
+
+deliverables:
+  - tests/test_agentforge.py
+  - report: .agentforge/reports/AF-0022-test-battery.yaml
+
+routing:
+  mode: delegate
+  preferred_tier: STANDARD
+  allow_delegation: down
+  reviewer_tier: DEEP
+  escalation_policy: return
