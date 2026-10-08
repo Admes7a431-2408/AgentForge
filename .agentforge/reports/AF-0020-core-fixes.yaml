@@ -28,6 +28,7 @@ files_affected:
   - methodology/workflow.md
   - methodology/governance.md
   - docs/decisions.md
+interface_changes: none
 
 tests_executed:
   - command: "python3 scripts/af.py validate contracts/templates/agent.yaml"

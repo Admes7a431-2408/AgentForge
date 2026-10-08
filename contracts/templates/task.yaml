@@ -14,9 +14,11 @@ context:                          # [L3] punteros, no copias
   read_first: []                  # rutas: .agentforge/CONTEXT.md, specs, código relevante
   background: >
     ...
-  interfaces:                     # lo que el ejecutor no puede decidir solo
+  interfaces:                     # [L2+, risk ≥ medium] obligatorio (Interface Integrity Gate, AD-011)
     consumes: []                  # firmas/contratos de los que depende
     produces: []                  # firmas/contratos que debe exponer
+    # Si nada cambia, sustituye todo el bloque por:  interfaces: none_modified
+    # {consumes: [], produces: []} vacío se rechaza por ambiguo.
 
 role: executor                    # executor | specialist | reviewer (methodology/roles.md)
 

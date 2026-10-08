@@ -1,0 +1,64 @@
+contract: AF-0021-interface-integrity
+task: >
+  Implementar el Interface Integrity Gate híbrido (contrato + reporte + validate + reviewer + metodología).
+status: DONE
+verified: true
+
+route:
+  - "Route: L2 · STANDARD · risk high · delegate(Claude) + verify(Antigravity) — Interface Integrity Gate"
+delegations:
+  - "claude STANDARD: implementación de reglas de interfaces en scripts/af.py, templates, ejemplos, af-reviewer.md, metodología y decisions.md → accepted"
+
+what_changed: >
+  af.py: get_interfaces/interface_errors; validate_task exige interfaces (none_modified o consumes/produces
+  no vacíos) en L2+ con risk medium/high/critical y rechaza ausente o {consumes: [], produces: []};
+  validate_report exige interface_changes ('none' o lista no vacía) y, con --contract, marca incoherencia si el
+  contrato declaró none_modified y el reporte declara cambios. Templates task/report, l2-bugfix (interfaces:
+  none_modified) y report-l2-bugfix (interface_changes: none) actualizados. af-reviewer.md: punto 3 de integridad
+  de interfaces, bloqueante (changes_required, P7). quality-gates.md (sección Interface Integrity Gate),
+  workflow.md (Contratar y Después) y decisions.md (AD-011).
+files_affected:
+  - scripts/af.py
+  - contracts/templates/task.yaml
+  - contracts/templates/report.yaml
+  - contracts/examples/l2-bugfix.yaml
+  - contracts/examples/report-l2-bugfix.yaml
+  - adapters/claude-code/agents/af-reviewer.md
+  - methodology/workflow.md
+  - methodology/quality-gates.md
+  - docs/decisions.md
+interface_changes:
+  - "af.py validate: nuevas reglas de rechazo (interfaces en tareas L2+ risk>=medium; interface_changes en reportes). Autorizado por el contrato."
+
+tests_executed:
+  - command: "python3 scripts/af.py validate contracts/examples/*.yaml"
+    result: "4/4 ok"
+  - command: "python3 scripts/af.py validate contracts/examples/report-l2-bugfix.yaml --contract contracts/examples/l2-bugfix.yaml"
+    result: "ok (report)"
+  - command: "python3 scripts/af.py check-scope .agentforge/contracts/AF-0021-interface-integrity.yaml --base 06e051a"
+    result: "G5 scope: pass — 9 changed, 0 out of scope (base 06e051a)"
+
+verification_results:
+  - gate: G1
+    result: pass
+    evidence: "Todos los criterios de aceptación de AF-0021 cumplidos y verificados."
+  - gate: G5
+    result: pass
+    evidence: "af.py check-scope: 9 changed, 0 out of scope contra base 06e051a."
+  - gate: G6
+    result: pass
+    evidence: "Cumplimiento estricto del contrato AF-0021."
+  - gate: G8
+    result: pass
+    evidence: "Diff verificado independientemente por Antigravity (Quality Owner); sin cambios fuera de scope."
+
+rulings:
+  - "Ruling: interfaces se lee de context.interfaces (ubicación del template) o de interfaces de primer nivel — compatible con ejemplos existentes — bajo"
+contract_deviations: []
+unexpected_findings:
+  - "l4-parent.yaml y l4-stream-api.yaml ya traen interfaces con consumes/produces no vacíos: cumplen sin cambios."
+remaining_risks: []
+follow_up_recommendations:
+  - "Ejecutar la batería determinista de tests I1-I9."
+
+learnings: []

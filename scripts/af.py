@@ -3,7 +3,7 @@
 
   af.py tier <TIER> --platform <claude-code|antigravity>   model/effort for a tier
   af.py role <executor|reviewer|orchestrator> --platform P  tier + model/effort for a role (active posture)
-  af.py validate [--contract C] <contract|report|agent.yaml>...  structural check by kind; --contract also checks a report's gates
+  af.py validate [--contract C] <contract|report|agent.yaml>...  structural check by kind; --contract also checks a report's gates and interface coherence
   af.py check-scope <contract.yaml> [--base REF] [--allow-untracked-contract]
                                                             gate G5: changes since REF (default HEAD) vs contract scope
   af.py init [PROJECT_DIR]                                  create .agentforge/ with CONTEXT.md
@@ -87,6 +87,35 @@ def is_empty(v):
     return v is None or v == "" or v == [] or v == {} or (isinstance(v, str) and v.strip() in ("...", "-"))
 
 
+IFACE_RISKS = ["medium", "high", "critical"]
+NONE_MODIFIED = "none_modified"
+
+
+def get_interfaces(d):
+    """Interface declaration: context.interfaces (template location) or top-level interfaces."""
+    ctx = d.get("context")
+    if isinstance(ctx, dict) and "interfaces" in ctx:
+        return ctx["interfaces"]
+    return d.get("interfaces")
+
+
+def interface_errors(d):
+    """Interface Integrity Gate (contract side): L2+ with risk >= medium must declare interfaces explicitly."""
+    ifc = get_interfaces(d)
+    if ifc == NONE_MODIFIED:
+        return []
+    if isinstance(ifc, dict) and (ifc.get("consumes") or ifc.get("produces")):
+        return []
+    if ifc is None:
+        why = "missing"
+    elif isinstance(ifc, dict):
+        why = "ambiguously empty"
+    else:
+        why = "invalid"
+    return [f"interfaces {why} (required at L2+ with risk medium/high/critical): "
+            f"declare 'interfaces: {NONE_MODIFIED}' or a dict with non-empty consumes/produces"]
+
+
 def validate_task(d):
     errs = []
     level = d.get("level")
@@ -108,6 +137,8 @@ def validate_task(d):
         errs.append(f"routing.preferred_tier must be one of {TIERS}")
     if r.get("allow_delegation") not in (None, *DELEGATION):
         errs.append(f"routing.allow_delegation must be one of {DELEGATION}")
+    if LEVELS.index(level) >= LEVELS.index("L2") and d.get("risk") in IFACE_RISKS:
+        errs += interface_errors(d)
     if d.get("risk") == "critical" and is_empty(d.get("human_gates")):
         errs.append("risk critical requires explicit human_gates")
     scope = d.get("scope") or {}
@@ -180,7 +211,14 @@ def validate_report(d, contract=None):
             errs += [f"status DONE with gate {v.get('gate')} {v.get('result')}" for v in results if v.get("result") == "not_run"]
         elif d.get("verified") is True and any(v.get("result") == "not_run" for v in results):
             errs.append("verified: true but some gate is not_run")
+    ic = d.get("interface_changes")
+    if is_empty(ic):
+        errs.append("missing 'interface_changes' (use 'none' or a non-empty list of changes)")
+    elif ic != "none" and not (isinstance(ic, list) and all(not is_empty(c) for c in ic)):
+        errs.append("interface_changes must be 'none' or a non-empty list of changes")
     if contract is not None:
+        if get_interfaces(contract) == NONE_MODIFIED and not is_empty(ic) and ic != "none":
+            errs.append("interface_changes declares changes but the contract declared 'interfaces: none_modified'")
         reported = {str(v.get("gate")) for v in results}
         errs += [f"contract gate {g} missing from verification_results"
                  for g in (contract.get("verification") or {}).get("gates") or [] if str(g) not in reported]

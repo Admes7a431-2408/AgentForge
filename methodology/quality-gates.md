@@ -15,6 +15,14 @@ Comprobaciones que deciden si un resultado se acepta. No todas aplican siempre: 
 | **G7 Architecture** | ¿Respeta las decisiones y restricciones del proyecto (`.agentforge/` y ADRs)? | Referencia a la decisión/restricción comprobada. |
 | **G8 Diff review** | ¿Lo aprobaría un revisor escéptico? | Revisión independiente (ver abajo). |
 
+## Interface Integrity Gate
+
+Parte de G1/G6/G8 en L2+ con risk ≥ medium (AD-011). Protege el *interface scope*, además del file scope de G5: una firma o data shape cambiado dentro de `allowed_files` no pasa inadvertido.
+
+- **Contrato:** `interfaces: none_modified` o un dict con `consumes`/`produces` no vacíos. Ausente o `{consumes: [], produces: []}` se rechaza.
+- **Reporte:** `interface_changes: none` o lista no vacía de cambios. Con `af.py validate --contract`, declarar cambios contra `none_modified` es incoherencia.
+- **Revisor (G8):** contrasta el diff con `interfaces`; toda alteración no autorizada es bloqueante (`changes_required`).
+
 ## Selección
 
 | | low | medium | high | critical |

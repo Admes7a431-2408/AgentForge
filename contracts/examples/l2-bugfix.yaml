@@ -12,6 +12,7 @@ context:
     - .agentforge/CONTEXT.md          # define "Invoice", "Line", "Discount"
     - src/billing/totals.py
     - tests/billing/test_totals.py
+  interfaces: none_modified           # firma pública de compute_total() intacta
   background: >
     Soporte reporta diferencias de 0,01 € en facturas con >3 líneas y descuento.
     Sospecha: se redondea por línea y otra vez sobre el total.

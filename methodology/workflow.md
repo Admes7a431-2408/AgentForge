@@ -28,7 +28,7 @@ De intención humana a trabajo verificado. Cada fase tiene un producto y un crit
 3. **Diseñar** (L3+). La solución más simple que cumple (P3). Registra solo las decisiones difíciles de revertir.
 4. **Descomponer** (L3+). Unidades que un ejecutor puede completar en un contexto fresco, cada una verificable por sí misma y preferiblemente vertical (atraviesa las capas necesarias y se puede demostrar sola). Prepara primero lo que haga fácil el cambio. Declara dependencias (`dependencies`); la *frontera* son las unidades sin dependencias pendientes. Para cambios mecánicos de gran radio, usa expand → migrate → contract en vez de cortes verticales.
 5. **Enrutar.** Una línea `Route:` por unidad: tier del ejecutor, si se paraleliza, quién revisa.
-6. **Contratar.** Un contrato por unidad. El contrato contiene las decisiones que el ejecutor no puede tomar solo (interfaces que consume y produce —incluido cualquier cambio de firma o de forma de datos—, restricciones globales copiadas literalmente, seams de test, criterios de aceptación), no el código. Un contrato más largo que el código que describe ya ha escrito el código. Comprueba contra el repo lo que escribes (P2): los comandos de verificación existen y se ejecutan, las rutas de `scope` son concretas y las zonas sensibles cercanas están en `excluded_areas`, el `id` es el siguiente libre en `.agentforge/contracts/`. Valida con `af.py validate`.
+6. **Contratar.** Un contrato por unidad. El contrato contiene las decisiones que el ejecutor no puede tomar solo (interfaces que consume y produce —incluido cualquier cambio de firma o de forma de datos; obligatorio desde L2 con risk ≥ medium: `interfaces: none_modified` o `consumes`/`produces` no vacíos—, restricciones globales copiadas literalmente, seams de test, criterios de aceptación), no el código. Un contrato más largo que el código que describe ya ha escrito el código. Comprueba contra el repo lo que escribes (P2): los comandos de verificación existen y se ejecutan, las rutas de `scope` son concretas y las zonas sensibles cercanas están en `excluded_areas`, el `id` es el siguiente libre en `.agentforge/contracts/`. Valida con `af.py validate`.
 7. **Delegar** la frontera, con el contrato ya commiteado: `check-scope` lee el alcance desde `--base` y falla si el contrato no está en git, así el ejecutor no puede autoexpandirlo; en paralelo solo unidades con alcances disjuntos, cada una con escritura en su propio worktree. Anota el commit de partida de cada unidad: es el `--base` de su `check-scope`.
 8. **Verificar e integrar** cada resultado (P9, [routing.md §5](routing.md#5-verificar-lo-delegado-p9)); al desbloquearse unidades, la frontera avanza.
 9. **Revisar** el conjunto integrado (G8) cuando hay más de una unidad.
@@ -55,7 +55,8 @@ De intención humana a trabajo verificado. Cada fase tiene un producto y un crit
 
 1. Autorrevisa el diff: ¿completo según criterios?, ¿sobra algo (P3, P4)?, ¿huérfanos que creaste?, ¿logs temporales?
 2. Ejecuta las gates que tocan ([quality-gates.md](quality-gates.md#selección)) con evidencia fresca: cada `pass` del reporte cita la salida de un comando ejecutado, no tu recuerdo de lo que hiciste.
-3. Entrega el reporte con `STATUS` honesto. Nunca `DONE` sin evidencia.
+3. Declara `interface_changes` en el reporte (`none` o la lista de firmas/shapes cambiados); un cambio no autorizado por `interfaces` es desviación, no ruling ([quality-gates.md](quality-gates.md#interface-integrity-gate)).
+4. Entrega el reporte con `STATUS` honesto. Nunca `DONE` sin evidencia.
 
 ### Como sub-orquestador
 

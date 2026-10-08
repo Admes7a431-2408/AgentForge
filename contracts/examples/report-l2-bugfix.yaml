@@ -16,6 +16,7 @@ what_changed: >
 files_affected:
   - src/billing/totals.py
   - tests/billing/test_totals.py
+interface_changes: none
 
 tests_executed:
   - command: "pytest tests/billing -q   (antes del fix, solo el test nuevo)"

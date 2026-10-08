@@ -16,6 +16,7 @@ delegations:                      # una línea por encargo: a quién, tier, resu
 what_changed: >
   ...
 files_affected: []
+interface_changes: none           # none | [lista de firmas/shapes cambiados]; obligatorio. Incoherente con 'interfaces: none_modified' si hay cambios
 
 tests_executed:
   - command: "..."
