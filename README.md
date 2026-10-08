@@ -63,7 +63,7 @@ Detalle completo en `methodology/routing.md` y `methodology/quality-gates.md`.
 ## Instalación
 
 ```bash
-git clone <url-del-repo> AgentForge && cd AgentForge
+git clone [https://github.com/Admes7a431-2408/AgentForge.git](https://github.com/Admes7a431-2408/AgentForge.git) && cd AgentForge
 bash install.sh --dry-run          # ver qué haría
 bash install.sh                    # enlaza la skill en ~/.claude y ~/.gemini
 bash install.sh --claude --agents  # solo Claude Code + subagentes af-*
