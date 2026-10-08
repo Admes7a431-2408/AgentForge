@@ -1,0 +1,92 @@
+id: AF-0021-interface-integrity
+level: L2
+risk: high
+
+objective: >
+  Implementar el Interface Integrity Gate: requerir interfaces en contratos L2+ de riesgo medium/high/critical
+  (soportando 'interfaces: none_modified' o consumes/produces), validar interface_changes en reportes,
+  actualizar af.py validate, af-reviewer.md, templates, ejemplos y metodología (workflow.md, quality-gates.md).
+
+context:
+  read_first:
+    - .agentforge/CONTEXT.md
+    - contracts/templates/task.yaml
+    - contracts/templates/report.yaml
+    - scripts/af.py
+    - adapters/claude-code/agents/af-reviewer.md
+    - methodology/workflow.md
+    - methodology/quality-gates.md
+  background: >
+    La investigación técnica demostró que AgentForge protegía FILE SCOPE pero carecía de control
+    sobre INTERFACE SCOPE. Un cambio de firma o de data shape dentro de allowed_files pasaba inadvertido.
+    La solución híbrida requiere:
+    1. Contrato: declaración obligatoria en L2+ (riesgo >= medium) de 'interfaces: none_modified' o consumes/produces.
+    2. Reporte: campo interface_changes: none | [cambios].
+    3. Tooling: af.py validate exige esta declaración en tareas y valida coherencia en reportes contra el contrato.
+    4. Reviewer: af-reviewer.md comprueba alteraciones de interfaces/firmas/shapes en el diff y las bloquea si no estaban autorizadas.
+    5. Ejemplos y templates actualizados para reflejar el nuevo estándar sin romper validaciones.
+
+role: executor
+
+scope:
+  allowed_files:
+    - scripts/af.py
+    - contracts/templates/task.yaml
+    - contracts/templates/report.yaml
+    - contracts/examples/l2-bugfix.yaml
+    - contracts/examples/l4-parent.yaml
+    - contracts/examples/l4-stream-api.yaml
+    - contracts/examples/report-l2-bugfix.yaml
+    - adapters/claude-code/agents/af-reviewer.md
+    - methodology/workflow.md
+    - methodology/quality-gates.md
+    - docs/decisions.md
+  excluded_areas:
+    - routing/profiles.yaml
+    - SKILL.md
+    - install.sh
+
+permissions:
+  commands:
+    allow:
+      - "python3 scripts/af.py validate contracts/examples/*.yaml"
+      - "python3 scripts/af.py validate contracts/templates/agent.yaml"
+      - "git diff"
+      - "git status"
+    deny:
+      - "git push"
+      - "git commit"
+  network: false
+  write_memory: false
+
+acceptance_criteria:
+  - "af.py validate exige en tareas L2+ con riesgo medium/high/critical que interfaces esté declarado: o 'interfaces: none_modified' o un diccionario con consumes o produces no vacíos."
+  - "af.py validate rechaza contratos L2+ de riesgo medium/high/critical donde interfaces esté ausente o sea ambiguamente vacío ({consumes: [], produces: []})."
+  - "af.py validate exige en reportes la presencia de interface_changes (valor 'none' o lista no vacía de cambios)."
+  - "af.py validate con --contract detecta incoherencia si el contrato declaró 'interfaces: none_modified' pero el reporte declara cambios en interface_changes."
+  - "contracts/templates/task.yaml y report.yaml incorporan el nuevo estándar de interfaces e interface_changes."
+  - "contracts/examples/*.yaml y report-l2-bugfix.yaml se actualizan para cumplir la nueva validación."
+  - "adapters/claude-code/agents/af-reviewer.md instruye explícitamente a af-reviewer a verificar firmas y shapes en el diff contra interfaces.produces/consumes y reportar como bloqueante cualquier alteración no autorizada."
+  - "methodology/quality-gates.md y workflow.md documentan el Interface Integrity Gate como parte del estándar de verificación."
+  - "docs/decisions.md registra la decisión AD-011 explicando el Interface Integrity Gate híbrido."
+
+verification:
+  commands:
+    - "python3 scripts/af.py validate contracts/examples/*.yaml"
+    - "python3 scripts/af.py validate contracts/examples/report-l2-bugfix.yaml --contract contracts/examples/l2-bugfix.yaml"
+  gates:
+    - G1
+    - G5
+    - G6
+    - G8
+
+deliverables:
+  - code changes
+  - report: .agentforge/reports/AF-0021-interface-integrity.yaml
+
+routing:
+  mode: delegate
+  preferred_tier: STANDARD
+  allow_delegation: down
+  reviewer_tier: DEEP
+  escalation_policy: return
