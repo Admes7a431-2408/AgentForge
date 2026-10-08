@@ -1,0 +1,87 @@
+id: AF-0020-core-fixes
+level: L2
+risk: high
+
+objective: >
+  Corregir los defectos de auditoría en scripts/af.py, install.sh y documentación clave:
+  validar reportes (DONE exige verified:true sin gates not_run), clasificar agent.yaml,
+  exigir contrato commiteado en check-scope, soportar validación cruzada reporte-contrato,
+  usar symlinks en install.sh --agents, usar realpath en af.py, y clarificar límites de permisos.
+
+context:
+  read_first:
+    - .agentforge/CONTEXT.md
+    - methodology/governance.md
+    - methodology/workflow.md
+    - scripts/af.py
+    - install.sh
+  background: >
+    La auditoría técnica identificó varias fallas en el tooling y la instalación:
+    1. af.py validate aprueba reportes DONE con verified:false y gates not_run.
+    2. af.py validate falla con 10 errores en agent.yaml porque lo evalúa como task.
+    3. check-scope no bloquea contratos sin commitear, permitiendo tampering no detectado.
+    4. af.py validate no puede comprobar que un reporte incluya los gates del contrato.
+    5. install.sh --agents usa cp en vez de ln -s.
+    6. af.py usa abspath en vez de realpath.
+    7. workflow.md no indica commitear el contrato antes de delegar.
+    8. governance.md debe clarificar que permissions.commands es soft gate conductual en v1.
+
+role: executor
+
+scope:
+  allowed_files:
+    - scripts/af.py
+    - install.sh
+    - methodology/workflow.md
+    - methodology/governance.md
+    - docs/decisions.md
+  excluded_areas:
+    - routing/profiles.yaml
+    - SKILL.md
+    - methodology/principles.md
+
+permissions:
+  commands:
+    allow:
+      - "python3 scripts/af.py --help"
+      - "python3 scripts/af.py validate contracts/examples/*.yaml contracts/templates/*.yaml"
+      - "git diff"
+      - "git status"
+    deny:
+      - "git push"
+      - "git commit"
+  network: false
+  write_memory: false
+
+acceptance_criteria:
+  - "af.py validate rechaza status: DONE si verified es false o si alguna gate en verification_results es not_run o fail."
+  - "af.py validate clasifica correctamente contracts/templates/agent.yaml como 'agent' y lo valida con éxito (ok (agent))."
+  - "af.py validate soporta flag opcional --contract <ruta> para validar reportes y exige que todas las gates requeridas en el contrato aparezcan en verification_results del reporte."
+  - "af.py check-scope falla por defecto si el contrato no está en git a la revisión --base (salvo que se pase --allow-untracked-contract)."
+  - "install.sh con flag --agents crea enlaces simbólicos (ln -s) en ~/.claude/agents/ y no copias físicas (cp), informando si ya está enlazado."
+  - "scripts/af.py usa os.path.realpath(__file__) para calcular ROOT de forma robusta ante symlinks."
+  - "methodology/workflow.md explicita que el contrato debe commitearse antes de delegar para habilitar la protección contra autoexpansión en check-scope."
+  - "methodology/governance.md clarifica que permissions.commands es un control declarativo/conductual en v1 mientras check-scope es mecánico."
+  - "docs/decisions.md registra estas correcciones y aclara el rol de los frontmatters de agentes como fallback de sintaxis."
+
+verification:
+  commands:
+    - "python3 scripts/af.py validate contracts/templates/agent.yaml"
+    - "python3 scripts/af.py validate contracts/examples/*.yaml"
+    - "./install.sh --dry-run"
+  gates:
+    - G1
+    - G5
+    - G6
+    - G8
+
+deliverables:
+  - code changes
+  - report: .agentforge/reports/AF-0020-core-fixes.yaml
+
+routing:
+  mode: delegate
+  preferred_tier: STANDARD
+  allow_delegation: down
+  reviewer_tier: DEEP
+  escalation_policy: return
