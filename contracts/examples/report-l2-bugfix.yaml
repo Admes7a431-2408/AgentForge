@@ -1,0 +1,53 @@
+contract: AF-0007-discount-rounding
+task: >
+  Corregir diferencias de 0,01 € en facturas con descuento porcentual.
+status: DONE_WITH_CONCERNS
+verified: true
+
+route:
+  - "Route: L2 · STANDARD · risk medium · delegate + review(DEEP) — bug de cálculo con tests existentes"
+delegations:
+  - "af-scout FAST: localizar todos los usos de round_money → accepted (5 citas, 2 comprobadas)"
+  - "af-reviewer DEEP: revisión del diff → contrato approve, calidad approve con 1 minor"
+
+what_changed: >
+  compute_total() redondeaba cada línea y después el total. Ahora acumula sin redondear
+  y aplica round_money (half-even) una sola vez sobre el total.
+files_affected:
+  - src/billing/totals.py
+  - tests/billing/test_totals.py
+
+tests_executed:
+  - command: "pytest tests/billing -q   (antes del fix, solo el test nuevo)"
+    result: "1 failed: expected 86.70, got 86.69"
+  - command: "pytest tests/billing -q"
+    result: "48 passed"
+
+verification_results:
+  - gate: G1
+    result: pass
+    evidence: "4/4 criterios: repro falla→pasa, suite verde, firma sin cambios (git diff muestra solo el cuerpo)"
+  - gate: G3
+    result: pass
+    evidence: "test_discount_rounding_reported_case: fail antes, pass después"
+  - gate: G4
+    result: pass
+    evidence: "suite tests/billing 48/48; round_money tiene 5 usos, solo totals.py afectado"
+  - gate: G5
+    result: pass
+    evidence: "af.py check-scope: 2 changed, 0 out of scope"
+  - gate: G8
+    result: pass
+    evidence: "af-reviewer: approve/approve; minor: nombre de variable 'acc' poco descriptivo (aplicado)"
+
+rulings:
+  - "Ruling: mantener round_money existente en vez de usar quantize directo — ya es la convención del módulo — bajo"
+contract_deviations: []
+unexpected_findings:
+  - "src/billing/tax/vat.py:41 redondea por línea el IVA; puede producir el mismo síntoma con IVA mixto (fuera de alcance, no tocado)"
+remaining_risks:
+  - "Facturas históricas ya emitidas no se recalculan; los informes que las suman pueden diferir 0,01 €."
+follow_up_recommendations:
+  - "Contrato separado para revisar el redondeo de IVA en src/billing/tax/ (equipo de impuestos)."
+
+learnings: []

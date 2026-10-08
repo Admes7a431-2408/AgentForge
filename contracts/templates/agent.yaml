@@ -1,0 +1,21 @@
+# AgentForge — Agent Contract
+# Declara un rol especializado reutilizable (methodology/roles.md). No fija un modelo: fija un tier por defecto.
+# Los adapters lo traducen a la plataforma (p. ej. adapters/claude-code/agents/*.md).
+
+name: security-reviewer
+role: reviewer                    # executor | specialist | reviewer
+purpose: >                        # cuándo usarlo (frase de disparo, no flujo)
+  Revisar cambios que tocan autenticación, secretos o permisos.
+default_tier: DEEP                # FAST | STANDARD | DEEP | MAX
+capabilities:                     # lo que puede hacer técnicamente
+  tools: [read, search, run_readonly_commands]
+authority:                        # lo que puede hacer por defecto (un contrato puede estrechar, no ampliar más allá de esto)
+  write: false
+  delegate: none                  # none | down | any
+  commands_allow: ["git diff", "git log"]
+returns: >                        # contrato de salida
+  STATUS + hallazgos ordenados por severidad (critical/important/minor),
+  cada uno con archivo:línea y escenario concreto de fallo. Máx. 8.
+escalates_when:
+  - el cambio requiere decisión de producto
+  - no puede verificarse desde el diff

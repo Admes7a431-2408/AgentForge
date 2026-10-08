@@ -1,0 +1,62 @@
+# AgentForge — Routing profiles
+# ÚNICO lugar donde los tiers abstractos se mapean a modelos/esfuerzos concretos.
+# La política (cuándo usar cada tier) está en methodology/routing.md; aquí solo el mapeo.
+# Revisa este archivo cuando cambie el catálogo de modelos (`claude --help`, `agy models`).
+# Consulta programática: python3 scripts/af.py tier <TIER> --platform <plataforma>
+
+version: 1
+verified_on: 2026-10-07          # fecha en que los mapeos se comprobaron en esta máquina
+
+tiers: [FAST, STANDARD, DEEP, MAX]   # orden de capacidad; la política está en methodology/routing.md §1
+effort_levels: [low, medium, high, xhigh, max]
+
+platforms:
+
+  claude-code:
+    main_session_switchable: false   # /model y /effort los cambia el humano; una skill no. Se enruta con subagentes.
+    mechanism: >
+      Herramienta Agent con parámetros `model` y `effort`, o un subagent definido en
+      ~/.claude/agents/ (su frontmatter fija model/effort/tools). Ver adapters/claude-code/README.md.
+    tiers:
+      FAST:     { model: haiku,  effort: low }
+      STANDARD: { model: sonnet, effort: medium }
+      DEEP:     { model: opus,   effort: high }
+      MAX:      { model: fable,  effort: xhigh }
+    # Agentes por función (aportan herramientas y permisos; el tier se pasa con model/effort al lanzarlos).
+    # Si el usuario ya tiene equivalentes instalados, se usan esos nombres.
+    agents:
+      explore: { default: af-scout,    existing: scout,    tier: FAST,     readonly: true }
+      execute: { default: af-worker,   existing: worker,   tier: STANDARD, readonly: false }
+      review:  { default: af-reviewer, existing: reviewer, tier: DEEP,     readonly: true }
+    headless: "claude -p --model <model> --effort <effort> --output-format json"
+
+  antigravity:
+    main_session_switchable: false   # /model persiste el modelo por defecto; no se asume cambio por tarea.
+    mechanism: >
+      (a) Subagentes nativos (invoke_subagent: `self` o `research`) — heredan el modelo de la sesión:
+          úsalos para descargar contexto y paralelizar, no para cambiar de tier.
+      (b) Subproceso headless `agy -p --model <m> --effort <e>` — cambia de tier de verdad.
+      (c) Puente a Claude Code (skill `claude`) — otro proveedor, para executor o segunda opinión.
+      Ver adapters/antigravity/README.md.
+    tiers:
+      FAST:     { model: gemini-3.8-flash-low,    effort: low }
+      STANDARD: { model: gemini-3.8-flash-medium, effort: medium }
+      DEEP:     { model: gemini-3.1-pro-high,     effort: high }
+      MAX:      { model: gemini-3.1-pro-high,     effort: xhigh, alternative: "claude-code MAX vía puente" }
+    headless: "agy -p <prompt> --model <model> --effort <effort> --mode plan --output-format json"
+
+# Posturas: desplazan el tier por defecto de cada rol sin tocar la política.
+postures:
+  default:
+    executor: STANDARD
+    reviewer: DEEP
+    orchestrator: DEEP
+  economy:          # presupuesto ajustado: baja un tier lo que no es revisión
+    executor: FAST
+    reviewer: STANDARD
+    orchestrator: STANDARD
+  quality:          # trabajo crítico: sube revisión y orquestación
+    executor: DEEP
+    reviewer: MAX
+    orchestrator: MAX
+active_posture: default

@@ -1,0 +1,50 @@
+# Ejemplo L4: el orquestador descompone una feature en streams paralelos con alcances disjuntos.
+# Este contrato padre no se ejecuta: coordina. Cada stream tiene su propio contrato (ver l4-stream-api.yaml).
+id: AF-0010-csv-export
+level: L4
+risk: high                            # expone datos de clientes
+
+objective: >
+  Un usuario con rol "admin" descarga en CSV las facturas de un rango de fechas
+  desde la pantalla de informes; ningún otro rol puede hacerlo.
+
+context:
+  read_first: [.agentforge/CONTEXT.md, .agentforge/decisions.md, docs/specs/csv-export.md]
+  background: >
+    Decisión AD-004: los informes se generan en streaming; nunca se cargan todas las filas en memoria.
+  interfaces:
+    produces:
+      - "GET /api/reports/invoices.csv?from=YYYY-MM-DD&to=YYYY-MM-DD -> text/csv (403 si no es admin)"
+
+scope:
+  allowed_directories: [src/api/reports/, src/web/reports/, tests/api/reports/, tests/web/reports/, tests/e2e/]
+  excluded_areas: [src/auth/]         # la autorización existente se usa, no se modifica
+
+constraints:
+  - "Los importes se manejan como Decimal; nunca float."
+  - "AD-004: streaming obligatorio para informes."
+
+acceptance_criteria:
+  - Admin descarga un CSV con las columnas de docs/specs/csv-export.md para el rango pedido.
+  - Un usuario no admin recibe 403 y no se genera ningún archivo.
+  - Exportar 100 000 facturas no supera 200 MB de memoria.
+
+verification:
+  commands: ["pytest tests/api/reports tests/web/reports -q"]
+  gates: [G1, G2, G3, G4, G5, G6, G7, G8]
+
+human_gates:
+  - Antes de exponer la ruta en el menú de producción.
+
+routing:
+  mode: parallel
+  preferred_tier: DEEP                # orquestación e integración
+  allow_delegation: down
+  reviewer_tier: DEEP
+  escalation_policy: return
+
+# Descomposición (cada línea = un contrato hijo con parent: AF-0010-csv-export):
+#   AF-0011-csv-api   STANDARD  src/api/reports/, tests/api/reports/   deps: —
+#   AF-0012-csv-ui    STANDARD  src/web/reports/, tests/web/reports/   deps: — (usa la interfaz pactada, no la implementación)
+#   AF-0013-csv-e2e   STANDARD  tests/e2e/csv_export.py                deps: AF-0011, AF-0012
+# Frontera inicial: AF-0011 y AF-0012 en paralelo (alcances disjuntos, un worktree cada uno). Revisión DEEP del conjunto antes del human gate.

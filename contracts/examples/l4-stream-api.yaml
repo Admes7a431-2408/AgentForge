@@ -1,0 +1,55 @@
+id: AF-0011-csv-api
+parent: AF-0010-csv-export
+level: L2
+risk: high
+
+objective: >
+  GET /api/reports/invoices.csv devuelve en streaming las facturas del rango a un admin y 403 a cualquier otro rol.
+
+context:
+  read_first: [.agentforge/CONTEXT.md, docs/specs/csv-export.md, src/api/reports/__init__.py]
+  interfaces:
+    consumes: ["auth.require_role(role: str) -> decorator   # existente, no modificar"]
+    produces: ["GET /api/reports/invoices.csv?from&to -> text/csv; 403 si no admin; 422 si rango inválido"]
+
+role: executor
+
+scope:
+  allowed_directories: [src/api/reports/, tests/api/reports/]
+  excluded_areas: [src/auth/]
+
+permissions:
+  commands:
+    allow: ["pytest tests/api/reports"]
+    deny: ["git push", "pip install"]
+
+constraints:
+  - "Los importes se manejan como Decimal; nunca float."
+  - "AD-004: streaming obligatorio para informes."
+
+dependencies: []
+
+acceptance_criteria:
+  - Test de admin con 3 facturas en rango → CSV con cabecera de la spec y 3 filas.
+  - Test de rol "cashier" → 403 y el generador no se invoca.
+  - Test de rango invertido → 422.
+  - La respuesta se genera con un iterador (verificable en el test con un mock del repositorio que falla si se pide list()).
+
+verification:
+  commands: ["pytest tests/api/reports -q"]
+  gates: [G1, G3, G4, G5, G6, G7, G8]   # L2 + risk high
+  seams: ["endpoint HTTP vía cliente de test"]
+
+deliverables:
+  - code changes
+  - report: .agentforge/reports/AF-0011-csv-api.yaml
+
+routing:
+  mode: delegate
+  preferred_tier: STANDARD
+  allow_delegation: none
+  reviewer_tier: DEEP
+  escalation_policy: return
+
+escalation_rules:
+  - Si require_role no soporta el caso, no modificar src/auth/: ESCALATE con la propuesta.

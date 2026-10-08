@@ -1,0 +1,57 @@
+# Ejemplo L2: bug con riesgo medio. Contrato ligero + revisión independiente.
+id: AF-0007-discount-rounding
+level: L2
+risk: medium
+
+objective: >
+  El total de una factura con descuento porcentual coincide al céntimo con el cálculo
+  de referencia (redondeo half-even aplicado una sola vez, sobre el total).
+
+context:
+  read_first:
+    - .agentforge/CONTEXT.md          # define "Invoice", "Line", "Discount"
+    - src/billing/totals.py
+    - tests/billing/test_totals.py
+  background: >
+    Soporte reporta diferencias de 0,01 € en facturas con >3 líneas y descuento.
+    Sospecha: se redondea por línea y otra vez sobre el total.
+
+scope:
+  allowed_files:
+    - src/billing/totals.py
+    - tests/billing/test_totals.py
+  excluded_areas:
+    - src/billing/tax/                # otro equipo; si la causa está ahí, escalar
+
+permissions:
+  commands:
+    allow: ["pytest tests/billing", "ruff check src/billing"]
+    deny: ["git push", "git commit"]
+
+constraints:
+  - "Los importes se manejan como Decimal; nunca float."   # copiado de CONTEXT.md → Constraints
+
+acceptance_criteria:
+  - Un test reproduce el caso reportado (4 líneas, 15 % de descuento) y falla antes del cambio.
+  - El mismo test pasa después del cambio.
+  - La suite tests/billing pasa completa.
+  - La firma pública de compute_total() no cambia.
+
+verification:
+  commands: ["pytest tests/billing -q"]
+  gates: [G1, G3, G4, G5, G8]
+  seams: ["compute_total(invoice) -> Decimal"]
+
+deliverables:
+  - code changes
+  - report: .agentforge/reports/AF-0007-discount-rounding.yaml
+
+routing:
+  mode: delegate
+  preferred_tier: STANDARD
+  allow_delegation: down
+  reviewer_tier: DEEP
+  escalation_policy: return
+
+escalation_rules:
+  - Si la causa raíz está en src/billing/tax/, detenerse y devolver ESCALATE con el repro.

@@ -1,0 +1,35 @@
+# AgentForge — Final Report
+# Todo trabajo relevante (L2+) lo produce; en L0–L1 basta "qué cambió + cómo se verificó".
+# Nunca declarar éxito porque los comandos terminaron: status refleja la evidencia (P6).
+
+contract: AF-0000-short-slug      # o "none" en L0
+task: >
+  ...
+status: DONE                      # DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED | ESCALATE | FAILED (routing.md §4)
+verified: true                    # false si alguna gate necesaria quedó not_run
+
+route:                            # traza de routing (sustituye a un log separado)
+  - "Route: L2 · STANDARD · risk medium · delegate + review(DEEP)"
+delegations:                      # una línea por encargo: a quién, tier, resultado, cómo se verificó
+  - "scout FAST: localizar usos de X → accepted (3 citas comprobadas)"
+
+what_changed: >
+  ...
+files_affected: []
+
+tests_executed:
+  - command: "..."
+    result: "pass 42/42"          # resultado observado, no esperado
+
+verification_results:             # una entrada por gate aplicada
+  - gate: G1
+    result: pass                  # pass | fail | not_run
+    evidence: "..."
+
+rulings: []                       # "Ruling: <qué> — <por qué> — <coste si me equivoco>"
+contract_deviations: []           # qué y por qué; quién lo autorizó
+unexpected_findings: []           # fuera de alcance: bugs ajenos, deuda, términos de glosario propuestos
+remaining_risks: []
+follow_up_recommendations: []
+
+learnings: []                     # solo si hubo señal (methodology/knowledge.md#learning-loop)

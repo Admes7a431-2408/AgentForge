@@ -1,0 +1,64 @@
+# AgentForge — Task Contract
+# Autoridad de un trabajo delegado (methodology/governance.md). Escribe solo los campos que aportan.
+# [L2] = obligatorio desde L2 (contrato ligero) · [L3] = obligatorio desde L3 · resto opcional.
+
+id: AF-0000-short-slug            # [L2] único; aparece en el reporte y en commits
+parent: null                      # id del contrato padre (L4 / sub-orquestación)
+level: L2                         # [L2] L0..L5 (methodology/routing.md §1)
+risk: medium                      # [L2] low | medium | high | critical
+
+objective: >                      # [L2] una frase verificable: qué resultado, no qué pasos
+  ...
+
+context:                          # [L3] punteros, no copias
+  read_first: []                  # rutas: .agentforge/CONTEXT.md, specs, código relevante
+  background: >
+    ...
+  interfaces:                     # lo que el ejecutor no puede decidir solo
+    consumes: []                  # firmas/contratos de los que depende
+    produces: []                  # firmas/contratos que debe exponer
+
+role: executor                    # executor | specialist | reviewer (methodology/roles.md)
+
+scope:                            # [L2]
+  allowed_files: []               # globs; lo no listado no se toca
+  allowed_directories: []
+  excluded_areas: []              # prohibido aunque parezca necesario → escalar
+
+permissions:
+  commands:
+    allow: []                     # p.ej. "npm test", "cargo check"
+    ask: []                       # requiere confirmación humana
+    deny: []                      # p.ej. "git push", "rm -rf"
+  network: false
+  write_memory: false             # ¿puede editar .agentforge/CONTEXT.md / decisions.md?
+
+constraints: []                   # restricciones globales copiadas literalmente (no parafraseadas)
+
+dependencies: []                  # ids de contratos que deben estar DONE antes
+
+acceptance_criteria:              # [L2] cada uno comprobable por separado
+  - ...
+
+verification:                     # [L2] cómo se demuestra (methodology/quality-gates.md)
+  commands: []                    # comandos red-capable
+  gates: [G1, G3, G4, G5, G8]     # L2 + risk medium; ver methodology/quality-gates.md#selección
+  seams: []                       # dónde testear (interfaz pública)
+
+human_gates: []                   # acciones que exigen parar y preguntar, además de las por defecto
+
+deliverables:
+  - code changes
+  - report: .agentforge/reports/AF-0000-short-slug.yaml
+
+routing:
+  mode: delegate                  # direct | delegate | parallel
+  preferred_tier: STANDARD        # FAST | STANDARD | DEEP | MAX (routing/profiles.yaml)
+  preferred_effort: null          # null = el del tier; o low|medium|high|xhigh|max
+  preferred_model: null           # override concreto solo si hace falta; normalmente se deriva del tier
+  allow_delegation: down          # none (hoja) | down (tiers ≤ propio) | any (también superiores) — routing.md §7
+  reviewer_tier: DEEP             # null si no hay revisión independiente
+  escalation_policy: return       # return = devolver ESCALATE al padre cuando la autoridad no basta
+
+escalation_rules:                 # además de methodology/governance.md#reglas-de-escalamiento
+  - ...
