@@ -29,7 +29,7 @@ Escribe solo los campos que aportan. Un campo vacío no es una restricción: es 
 
 ## Permisos: declarativos + mecánicos
 
-`permissions.commands.{allow, ask, deny}` declara la intención. Donde la plataforma lo permite, el adapter la traduce a una restricción real (herramientas permitidas, modo de solo lectura, allowlist de comandos). Donde no puede, la protección es doble: el agente la respeta (P8) y la gate de alcance la comprueba después contra el diff (`scripts/af.py check-scope`). Una restricción que no se puede ni imponer ni comprobar debe reformularse para que sí se pueda.
+`permissions.commands.{allow, ask, deny}` declara la intención. En v1 es un control declarativo/conductual (soft gate): nada lo impone mecánicamente salvo que el adapter lo traduzca; el único control mecánico es `check-scope` sobre el diff. Donde la plataforma lo permite, el adapter la traduce a una restricción real (herramientas permitidas, modo de solo lectura, allowlist de comandos). Donde no puede, la protección es doble: el agente la respeta (P8) y la gate de alcance la comprueba después contra el diff (`scripts/af.py check-scope`). Una restricción que no se puede ni imponer ni comprobar debe reformularse para que sí se pueda.
 
 ## Human gates
 

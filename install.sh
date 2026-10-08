@@ -40,7 +40,13 @@ if (( agents )); then
   run mkdir -p "$HOME/.claude/agents"
   for f in "$SRC"/adapters/claude-code/agents/*.md; do
     dst="$HOME/.claude/agents/$(basename "$f")"
-    if [[ -e "$dst" ]]; then echo "omitido $dst (ya existe)"; else run cp "$f" "$dst"; echo "copiado $dst"; fi
+    if [[ -L "$dst" && "$(readlink -f "$dst")" == "$(readlink -f "$f")" ]]; then
+      echo "ok      $dst (ya enlazado)"
+    elif [[ -e "$dst" || -L "$dst" ]]; then
+      echo "omitido $dst existe y no apunta a $f; revísalo a mano" >&2
+    else
+      run ln -s "$f" "$dst"; echo "enlazado $dst -> $f"
+    fi
   done
 fi
 

@@ -3,8 +3,9 @@
 
   af.py tier <TIER> --platform <claude-code|antigravity>   model/effort for a tier
   af.py role <executor|reviewer|orchestrator> --platform P  tier + model/effort for a role (active posture)
-  af.py validate <contract-or-report.yaml>...               structural check by level
-  af.py check-scope <contract.yaml> [--base REF]            gate G5: changes since REF (default HEAD) vs contract scope
+  af.py validate [--contract C] <contract|report|agent.yaml>...  structural check by kind; --contract also checks a report's gates
+  af.py check-scope <contract.yaml> [--base REF] [--allow-untracked-contract]
+                                                            gate G5: changes since REF (default HEAD) vs contract scope
   af.py init [PROJECT_DIR]                                  create .agentforge/ with CONTEXT.md
 
 Exit codes: 0 ok, 1 check failed, 2 usage/config error. Requires PyYAML.
@@ -26,7 +27,7 @@ try:
 except ImportError:
     die("af.py: PyYAML is required (pip install pyyaml)")
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 PROFILES = os.path.join(ROOT, "routing", "profiles.yaml")
 
 LEVELS = ["L0", "L1", "L2", "L3", "L4", "L5"]
@@ -133,7 +134,30 @@ def task_warnings(d, path):
     return warns
 
 
-def validate_report(d):
+AGENT_REQUIRED = ["name", "role", "purpose", "default_tier", "returns"]
+AGENT_ROLES = ["executor", "specialist", "reviewer"]
+
+
+def validate_agent(d):
+    errs = [f"missing or empty field '{k}'" for k in AGENT_REQUIRED if is_empty(d.get(k))]
+    if d.get("role") is not None and d["role"] not in AGENT_ROLES:
+        errs.append(f"role must be one of {AGENT_ROLES}")
+    if d.get("default_tier") is not None and d["default_tier"] not in TIERS:
+        errs.append(f"default_tier must be one of {TIERS}")
+    if (d.get("authority") or {}).get("delegate") not in (None, *DELEGATION):
+        errs.append(f"authority.delegate must be one of {DELEGATION}")
+    return errs
+
+
+def classify(d):
+    if "status" in d and "objective" not in d:
+        return "report"
+    if "objective" not in d and "level" not in d and ("default_tier" in d or "authority" in d):
+        return "agent"
+    return "task"
+
+
+def validate_report(d, contract=None):
     errs = []
     if d.get("status") not in STATUS:
         errs.append(f"status must be one of {STATUS}")
@@ -150,20 +174,29 @@ def validate_report(d):
             errs.append("status DONE without verification_results")
         if any(v.get("result") == "fail" for v in results):
             errs.append("status DONE with a failed gate")
-        if d.get("verified") is True and any(v.get("result") == "not_run" for v in results):
+        if d.get("status") == "DONE":
+            if d.get("verified") is not True:
+                errs.append("status DONE requires verified: true")
+            errs += [f"status DONE with gate {v.get('gate')} {v.get('result')}" for v in results if v.get("result") == "not_run"]
+        elif d.get("verified") is True and any(v.get("result") == "not_run" for v in results):
             errs.append("verified: true but some gate is not_run")
+    if contract is not None:
+        reported = {str(v.get("gate")) for v in results}
+        errs += [f"contract gate {g} missing from verification_results"
+                 for g in (contract.get("verification") or {}).get("gates") or [] if str(g) not in reported]
     return errs
 
 
 def cmd_validate(a):
     failed = False
+    contract = load_yaml(a.contract) if a.contract else None
     for path in a.files:
         d = load_yaml(path)
-        kind = "report" if "status" in d and "objective" not in d else "task"
-        errs = validate_report(d) if kind == "report" else validate_task(d)
+        kind = classify(d)
+        errs = validate_report(d, contract) if kind == "report" else validate_agent(d) if kind == "agent" else validate_task(d)
         for e in errs:
             print(f"{path}: {e}")
-        for w in ([] if kind == "report" else task_warnings(d, path)):
+        for w in (task_warnings(d, path) if kind == "task" else []):
             print(f"{path}: warning: {w}")
         if not errs:
             print(f"{path}: ok ({kind})")
@@ -221,8 +254,10 @@ def cmd_check_scope(a):
         if base_d != d:
             problems.append(f"CONTRACT MODIFIED since {a.base}: {contract_rel}")
         d = base_d
-    else:
+    elif a.allow_untracked_contract:
         print(f"warning: {contract_rel} is not tracked at {a.base}; scope edits to it cannot be detected", file=sys.stderr)
+    else:
+        problems.append(f"CONTRACT NOT TRACKED at {a.base}: {contract_rel} (commit it before delegating, or pass --allow-untracked-contract)")
     scope = d.get("scope") or {}
     allowed = (scope.get("allowed_files") or []) + (scope.get("allowed_directories") or [])
     excluded = scope.get("excluded_areas") or []
@@ -264,8 +299,8 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("tier"); s.add_argument("tier"); s.add_argument("--platform", required=True); s.set_defaults(f=cmd_tier)
     s = sub.add_parser("role"); s.add_argument("role"); s.add_argument("--platform", required=True); s.set_defaults(f=cmd_role)
-    s = sub.add_parser("validate"); s.add_argument("files", nargs="+"); s.set_defaults(f=cmd_validate)
-    s = sub.add_parser("check-scope"); s.add_argument("contract"); s.add_argument("--base", default="HEAD"); s.set_defaults(f=cmd_check_scope)
+    s = sub.add_parser("validate"); s.add_argument("files", nargs="+"); s.add_argument("--contract"); s.set_defaults(f=cmd_validate)
+    s = sub.add_parser("check-scope"); s.add_argument("contract"); s.add_argument("--base", default="HEAD"); s.add_argument("--allow-untracked-contract", action="store_true"); s.set_defaults(f=cmd_check_scope)
     s = sub.add_parser("init"); s.add_argument("project", nargs="?", default="."); s.set_defaults(f=cmd_init)
     a = p.parse_args()
     a.f(a)

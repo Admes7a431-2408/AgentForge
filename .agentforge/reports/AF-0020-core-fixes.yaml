@@ -1,0 +1,69 @@
+contract: AF-0020-core-fixes
+task: >
+  Corregir los defectos de auditoría en scripts/af.py, install.sh y documentación clave:
+  validar reportes (DONE exige verified:true sin gates not_run), clasificar agent.yaml,
+  exigir contrato commiteado en check-scope, soportar validación cruzada reporte-contrato,
+  usar symlinks en install.sh --agents, usar realpath en af.py, y clarificar límites de permisos.
+status: DONE
+verified: true
+
+route:
+  - "Route: L2 · STANDARD · risk high · delegate(Claude) + verify(Antigravity) — corrección de tooling determinista y contratos"
+delegations:
+  - "claude STANDARD: implementación de correcciones en scripts/af.py, install.sh, docs y metodología → accepted"
+
+what_changed: >
+  1. scripts/af.py: ROOT calculado con os.path.realpath(__file__).
+  2. scripts/af.py: validate_report exige verified: true y ninguna gate not_run para status DONE.
+  3. scripts/af.py: classify() y validate_agent() reconocen y validan plantillas y contratos de agentes.
+  4. scripts/af.py: validate soporta --contract <ruta> para exigir que todas las gates requeridas en el contrato aparezcan en el reporte.
+  5. scripts/af.py: check-scope falla si el contrato no está en git a la revisión --base (salvo con --allow-untracked-contract).
+  6. install.sh: flag --agents crea enlaces simbólicos (ln -s) en ~/.claude/agents/.
+  7. methodology/workflow.md: paso 7 explicita commitear contrato antes de delegar para habilitar protección contra autoexpansión.
+  8. methodology/governance.md: clarifica que permissions.commands es un control declarativo/conductual en v1.
+  9. docs/decisions.md: añadida decisión AD-010 documentando todas las correcciones y aclarando los fallbacks de modelos en frontmatters.
+files_affected:
+  - scripts/af.py
+  - install.sh
+  - methodology/workflow.md
+  - methodology/governance.md
+  - docs/decisions.md
+
+tests_executed:
+  - command: "python3 scripts/af.py validate contracts/templates/agent.yaml"
+    result: "ok (agent)"
+  - command: "python3 scripts/af.py validate contracts/examples/*.yaml"
+    result: "4/4 ok"
+  - command: "python3 scripts/af.py validate /tmp/rep1.yaml (DONE con verified:false)"
+    result: "rejected: status DONE requires verified: true"
+  - command: "python3 scripts/af.py validate /tmp/rep2.yaml (DONE con gate not_run)"
+    result: "rejected: status DONE with gate G1 not_run"
+  - command: "python3 scripts/af.py validate /tmp/rep3.yaml --contract contracts/examples/l2-bugfix.yaml"
+    result: "rejected: contract gate G3/G4 missing from verification_results"
+  - command: "python3 scripts/af.py validate contracts/examples/report-l2-bugfix.yaml --contract contracts/examples/l2-bugfix.yaml"
+    result: "ok (report)"
+  - command: "./install.sh --dry-run --agents"
+    result: "enlaces simbólicos ln -s para af-reviewer.md, af-scout.md, af-worker.md"
+  - command: "python3 scripts/af.py check-scope .agentforge/contracts/AF-0020-core-fixes.yaml --base 188a9e2"
+    result: "G5 scope: pass — 5 changed, 0 out of scope"
+
+verification_results:
+  - gate: G1
+    result: pass
+    evidence: "Todos los acceptance_criteria cumplidos y comprobados con comandos directos."
+  - gate: G5
+    result: pass
+    evidence: "af.py check-scope: 5 changed, 0 out of scope (base 188a9e2)."
+  - gate: G6
+    result: pass
+    evidence: "Cumplimiento estricto del contrato AF-0020-core-fixes."
+  - gate: G8
+    result: pass
+    evidence: "Diff quirúrgico y verificado independientemente por Antigravity."
+
+rulings: []
+contract_deviations: []
+unexpected_findings: []
+remaining_risks: []
+follow_up_recommendations: []
+learnings: []
