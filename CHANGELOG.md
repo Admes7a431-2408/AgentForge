@@ -12,3 +12,4 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 - Adaptadores para Claude Code y Antigravity.
 - `install.sh` por symlinks (SSOT) con `--dry-run`, `--uninstall` y `--help`, idempotente.
 - Suite de tests (`python3 -m unittest discover -s tests -v`).
+- Licencia MIT (`LICENSE`) y sección de referencias técnicas y agradecimientos en `README.md`.
